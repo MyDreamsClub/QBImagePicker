@@ -248,8 +248,11 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
                 break;
         }
         
-        options.sortDescriptors = @[[NSSortDescriptor sortDescriptorWithKey:@"creationDate"
-                                                                  ascending:self.imagePickerController.sortByDateAscending]];
+        NSSortDescriptor *sortByCreationDate = [NSSortDescriptor sortDescriptorWithKey:@"creationDate" ascending:self.imagePickerController.sortByDateAscending];
+        NSSortDescriptor *sortByModificationDate = [NSSortDescriptor sortDescriptorWithKey:@"modificationDate" ascending:self.imagePickerController.sortByDateAscending];
+        
+        BOOL systemVersionGreaterThanOrEqualToIOS11 = ([[[UIDevice currentDevice] systemVersion] compare:@"11.0" options:NSNumericSearch] != NSOrderedAscending);
+        options.sortDescriptors = systemVersionGreaterThanOrEqualToIOS11 ? @[sortByModificationDate, sortByCreationDate] : @[sortByCreationDate, sortByModificationDate];
         
         
         self.fetchResult = [PHAsset fetchAssetsInAssetCollection:self.assetCollection options:options];
