@@ -35,6 +35,27 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
     return indexPaths;
 }
 
+- (BOOL)qb_intersectsIndexSet:(NSIndexSet *)other {
+
+    if (other == nil) {
+        return NO;
+    }
+
+    NSMutableIndexSet *result = [self mutableCopy];
+    [result addIndexes:other];
+
+    NSMutableIndexSet *diff = [self mutableCopy];
+    NSMutableIndexSet *temp = [other mutableCopy];
+
+    [diff removeIndexes:other];
+    [temp removeIndexes:self];
+    [diff addIndexes:temp];
+
+    [result removeIndexes:diff];
+
+    return result.count > 0;
+}
+
 @end
 
 @implementation UICollectionView (Convenience)
@@ -419,20 +440,8 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
                 NSIndexSet *changedIndexes = [collectionChanges changedIndexes];
                 NSArray *changedPaths = [changedIndexes qb_indexPathsFromIndexesWithSection:0];
 
-                BOOL shouldReload = NO;
-
-                if (changedPaths != nil && removedPaths != nil) {
-                    for (NSIndexPath *changedPath in changedPaths) {
-                        if ([removedPaths containsObject:changedPath]) {
-                            shouldReload = YES;
-                            break;
-                        }
-                    }
-                }
-
-                if (removedPaths.lastObject && ((NSIndexPath *)removedPaths.lastObject).item >= self.fetchResult.count) {
-                    shouldReload = YES;
-                }
+                BOOL shouldReload = [changedIndexes qb_intersectsIndexSet:removedIndexes] ||
+                                    (removedIndexes && removedIndexes.lastIndex >= self.fetchResult.count);
 
                 if (shouldReload) {
                     [self.collectionView reloadData];
@@ -466,6 +475,7 @@ static CGSize CGSizeScale(CGSize size, CGFloat scale) {
                 [self resetCachedAssets];
             } else {
                 [self.collectionView reloadData];
+                [self resetCachedAssets];
                 dispatch_semaphore_signal(self.collectionViewUpdateMutex);
             }
         } else {
